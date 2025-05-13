@@ -23,11 +23,13 @@
     #scoreBoard {
       position: absolute;
       top: 20px;
-      left: 20px;
+      left: 50%;
+      transform: translateX(-50%);
       color: #ffffff;
-      font-size: 24px;
+      font-size: 28px;
       text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
       font-weight: bold;
+      text-align: center;
     }
   </style>
 </head>
@@ -51,7 +53,7 @@
         this.y = Math.random() * canvas.height;
         this.speedX = (Math.random() - 0.5) * 4;
         this.speedY = (Math.random() - 0.5) * 4;
-        this.size = 30 + Math.random() * 20;
+        this.size = 30 + Math.random() * 20; // 大小範圍: 30~50
         this.color = `hsla(${Math.random() * 360}, 80%, 65%, 0.85)`;
       }
 
@@ -112,8 +114,8 @@
         this.y = y;
         this.points = points;
         this.opacity = 1;
-        this.speedY = -1; // 向上浮動
-        this.fontSize = 20 + points * 0.3; // 根據分數調整字體大小
+        this.speedY = -1;
+        this.fontSize = 20 + points * 0.3; // 字體大小與分數成正比
       }
 
       update() {
@@ -150,7 +152,7 @@
         const bubble = bubbles[i];
         const distance = Math.sqrt((clickX - bubble.x) ** 2 + (clickY - bubble.y) ** 2);
         if (distance < bubble.size / 2) {
-          const points = Math.floor(bubble.size);
+          const points = Math.floor(80 - bubble.size); // 越大分數越低 (30~50 -> 50~30分)
           score += points;
           scoreDisplay.textContent = score;
           effects.push(new CaptureEffect(bubble.x, bubble.y));
