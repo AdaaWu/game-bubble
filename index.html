@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>打泡泡遊戲</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: linear-gradient(to bottom, #d0e4ff, #e6d5f7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+    }
+    #gameCanvas {
+      border: 2px solid #ffffff;
+      background: linear-gradient(to bottom, #a3cffa, #d4c4fb);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    }
+    #scoreBoard {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: #ffffff;
+      font-size: 24px;
+      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div id="scoreBoard">分數: <span id="score">0</span></div>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreDisplay = document.getElementById('score');
+    let score = 0;
+    const bubbles = [];
+    const effects = [];
+    const scoreEffects = [];
+
+    // 泡泡類別
+    class Bubble {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.speedX = (Math.random() - 0.5) * 4;
+        this.speedY = (Math.random() - 0.5) * 4;
+        this.size = 30 + Math.random() * 20;
+        this.color = `hsla(${Math.random() * 360}, 80%, 65%, 0.85)`;
+      }
+
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+
+        // 邊界檢查
+        if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+        if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.closePath();
+      }
+    }
+
+    // 捕捉效果類別（爆炸圓環）
+    class CaptureEffect {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.radius = 10;
+        this.maxRadius = 50;
+        this.opacity = 1;
+      }
+
+      update() {
+        this.radius += 2;
+        this.opacity -= 0.05;
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${this.opacity})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.closePath();
+      }
+
+      isFinished() {
+        return this.opacity <= 0;
+      }
+    }
+
+    // 分數效果類別（+分數文字）
+    class ScoreEffect {
+      constructor(x, y, points) {
+        this.x = x;
+        this.y = y;
+        this.points = points;
+        this.opacity = 1;
+        this.speedY = -1; // 向上浮動
+        this.fontSize = 20 + points * 0.3; // 根據分數調整字體大小
+      }
+
+      update() {
+        this.y += this.speedY;
+        this.opacity -= 0.03;
+      }
+
+      draw() {
+        ctx.font = `${this.fontSize}px Arial`;
+        ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+        ctx.textAlign = 'center';
+        ctx.fillText(`+${this.points}`, this.x, this.y);
+      }
+
+      isFinished() {
+        return this.opacity <= 0;
+      }
+    }
+
+    // 初始化泡泡
+    function initBubbles() {
+      for (let i = 0; i < 10; i++) {
+        bubbles.push(new Bubble());
+      }
+    }
+
+    // 點擊事件：捕捉泡泡
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      for (let i = bubbles.length - 1; i >= 0; i--) {
+        const bubble = bubbles[i];
+        const distance = Math.sqrt((clickX - bubble.x) ** 2 + (clickY - bubble.y) ** 2);
+        if (distance < bubble.size / 2) {
+          const points = Math.floor(bubble.size);
+          score += points;
+          scoreDisplay.textContent = score;
+          effects.push(new CaptureEffect(bubble.x, bubble.y));
+          scoreEffects.push(new ScoreEffect(bubble.x, bubble.y, points));
+          bubbles.splice(i, 1);
+          bubbles.push(new Bubble());
+          break;
+        }
+      }
+    });
+
+    // 遊戲主迴圈
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 繪製和更新泡泡
+      bubbles.forEach(bubble => {
+        bubble.update();
+        bubble.draw();
+      });
+
+      // 繪製和更新捕捉效果
+      for (let i = effects.length - 1; i >= 0; i--) {
+        effects[i].update();
+        effects[i].draw();
+        if (effects[i].isFinished()) {
+          effects.splice(i, 1);
+        }
+      }
+
+      // 繪製和更新分數效果
+      for (let i = scoreEffects.length - 1; i >= 0; i--) {
+        scoreEffects[i].update();
+        scoreEffects[i].draw();
+        if (scoreEffects[i].isFinished()) {
+          scoreEffects.splice(i, 1);
+        }
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // 啟動遊戲
+    initBubbles();
+    gameLoop();
+  </script>
+</body>
+</html>
